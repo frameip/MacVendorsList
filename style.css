@@ -8,6 +8,20 @@ body {
   padding: 2rem 1rem;
 }
 
+.site-header {
+  max-width: 860px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.site-logo {
+  height: 48px;
+  width: auto;
+}
+
 main {
   max-width: 860px;
   margin: 0 auto;
