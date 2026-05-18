@@ -20,6 +20,7 @@ body {
 .site-logo {
   height: 48px;
   width: auto;
+  mix-blend-mode: multiply;
 }
 
 main {
