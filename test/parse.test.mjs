@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeMAC, extractOUI, splitInput, detectFormat, parseCiscoTable } from '../lib/parse.js';
+import { normalizeMAC, extractOUI, splitInput, detectFormat, parseCiscoTable, parseHPTable, parseOSCXTable } from '../lib/parse.js';
 
 // normalizeMAC
 
@@ -121,4 +121,77 @@ test('parseCiscoTable: ignore la ligne d\'en-tête', () => {
 
 test('parseCiscoTable: retourne tableau vide sur entrée vide', () => {
   assert.deepEqual(parseCiscoTable(''), []);
+});
+
+// ── normalizeMAC HP ProCurve ──────────────────────────────────────────────────
+
+test('normalizeMAC: format HP ProCurve (aabbcc-ddeeff)', () => {
+  assert.equal(normalizeMAC('aabbcc-ddeeff'), 'AA:BB:CC:DD:EE:FF');
+});
+
+// ── detectFormat HP / OS-CX ──────────────────────────────────────────────────
+
+const HP_SAMPLE = `Status and Counters - Port Address Table
+
+  MAC Address          Located on Port
+  ------------- ---------------
+  aabbcc-ddeeff 1
+  001122-334455 A2`;
+
+const OSCX_SAMPLE = `MAC age-time : 300 seconds
+Number of MAC addresses : 2
+
+MAC Address         VLAN Type    Port
+--------------------------------------------------
+00:11:22:33:44:55   1    dynamic 1/1/1
+aa:bb:cc:dd:ee:ff   10   static  1/1/2`;
+
+test('detectFormat: retourne hp sur en-tête HP ProCurve', () => {
+  assert.equal(detectFormat(HP_SAMPLE), 'hp');
+});
+
+test('detectFormat: retourne oscx sur en-tête OS-CX', () => {
+  assert.equal(detectFormat(OSCX_SAMPLE), 'oscx');
+});
+
+// ── parseHPTable ──────────────────────────────────────────────────────────────
+
+test('parseHPTable: parse une ligne correctement', () => {
+  const result = parseHPTable(HP_SAMPLE);
+  assert.deepEqual(result[0], { rawMac: 'aabbcc-ddeeff', port: '1' });
+});
+
+test('parseHPTable: parse le port alphanumérique', () => {
+  const result = parseHPTable(HP_SAMPLE);
+  assert.deepEqual(result[1], { rawMac: '001122-334455', port: 'A2' });
+});
+
+test('parseHPTable: ignore l\'en-tête et les séparateurs', () => {
+  const result = parseHPTable(HP_SAMPLE);
+  assert.equal(result.length, 2);
+});
+
+test('parseHPTable: retourne tableau vide sur entrée vide', () => {
+  assert.deepEqual(parseHPTable(''), []);
+});
+
+// ── parseOSCXTable ───────────────────────────────────────────────────────────
+
+test('parseOSCXTable: parse une ligne dynamic', () => {
+  const result = parseOSCXTable(OSCX_SAMPLE);
+  assert.deepEqual(result[0], { vlan: '1', rawMac: '00:11:22:33:44:55', type: 'dynamic', port: '1/1/1' });
+});
+
+test('parseOSCXTable: parse une ligne static', () => {
+  const result = parseOSCXTable(OSCX_SAMPLE);
+  assert.deepEqual(result[1], { vlan: '10', rawMac: 'aa:bb:cc:dd:ee:ff', type: 'static', port: '1/1/2' });
+});
+
+test('parseOSCXTable: ignore les lignes d\'en-tête et séparateurs', () => {
+  const result = parseOSCXTable(OSCX_SAMPLE);
+  assert.equal(result.length, 2);
+});
+
+test('parseOSCXTable: retourne tableau vide sur entrée vide', () => {
+  assert.deepEqual(parseOSCXTable(''), []);
 });

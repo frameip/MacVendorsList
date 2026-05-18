@@ -1,4 +1,4 @@
-import { normalizeMAC, splitInput, detectFormat, parseCiscoTable } from './lib/parse.js';
+import { normalizeMAC, splitInput, detectFormat, parseCiscoTable, parseHPTable, parseOSCXTable } from './lib/parse.js';
 import { resolveAll } from './lib/resolve.js';
 
 const macInput      = document.getElementById('mac-input');
@@ -19,9 +19,13 @@ function esc(s) {
 }
 
 function setHeaders(mode) {
-  theadRow.innerHTML = mode === 'cisco'
-    ? '<th>VLAN</th><th>Adresse MAC</th><th>Port</th><th>Constructeur</th>'
-    : '<th>Adresse MAC</th><th>Constructeur</th>';
+  if (mode === 'cisco' || mode === 'oscx') {
+    theadRow.innerHTML = '<th>VLAN</th><th>Adresse MAC</th><th>Port</th><th>Constructeur</th>';
+  } else if (mode === 'hp') {
+    theadRow.innerHTML = '<th>Adresse MAC</th><th>Port</th><th>Constructeur</th>';
+  } else {
+    theadRow.innerHTML = '<th>Adresse MAC</th><th>Constructeur</th>';
+  }
 }
 
 function renderRows(rows) {
@@ -43,7 +47,39 @@ function renderCiscoRows(ciscoLines, resolvedRows) {
   resultsBody.innerHTML = '';
   resolvedRows.forEach((row, i) => {
     const meta = ciscoLines[i];
-    const label = SOURCE_LABELS[row.source] ?? row.source;
+    const tr = document.createElement('tr');
+    tr.dataset.source = row.source;
+    tr.innerHTML =
+      `<td>${esc(meta.vlan)}</td>` +
+      `<td class="mono">${esc(row.display)}</td>` +
+      `<td>${esc(meta.port)}</td>` +
+      `<td>${esc(row.vendor)}</td>`;
+    resultsBody.appendChild(tr);
+  });
+  const n = resolvedRows.length;
+  resultsCount.textContent = `${n} adresse${n > 1 ? 's' : ''}`;
+}
+
+function renderHPRows(hpLines, resolvedRows) {
+  resultsBody.innerHTML = '';
+  resolvedRows.forEach((row, i) => {
+    const meta = hpLines[i];
+    const tr = document.createElement('tr');
+    tr.dataset.source = row.source;
+    tr.innerHTML =
+      `<td class="mono">${esc(row.display)}</td>` +
+      `<td>${esc(meta.port)}</td>` +
+      `<td>${esc(row.vendor)}</td>`;
+    resultsBody.appendChild(tr);
+  });
+  const n = resolvedRows.length;
+  resultsCount.textContent = `${n} adresse${n > 1 ? 's' : ''}`;
+}
+
+function renderOSCXRows(oscxLines, resolvedRows) {
+  resultsBody.innerHTML = '';
+  resolvedRows.forEach((row, i) => {
+    const meta = oscxLines[i];
     const tr = document.createElement('tr');
     tr.dataset.source = row.source;
     tr.innerHTML =
@@ -77,6 +113,44 @@ btnResolve.addEventListener('click', async () => {
     const entries = ciscoLines.map(l => ({ raw: l.rawMac, mac: normalizeMAC(l.rawMac) }));
     const { hasRateLimit } = await resolveAll(entries, (resolvedRows) => {
       renderCiscoRows(ciscoLines, resolvedRows);
+    });
+    if (hasRateLimit) rateLimitWarn.classList.remove('hidden');
+    btnResolve.disabled = false;
+
+  } else if (format === 'hp') {
+    const hpLines = parseHPTable(text)
+      .sort((a, b) => a.port.localeCompare(b.port, undefined, { numeric: true, sensitivity: 'base' }));
+    if (hpLines.length === 0) {
+      macInput.classList.add('error');
+      setTimeout(() => macInput.classList.remove('error'), 1500);
+      return;
+    }
+    setHeaders('hp');
+    rateLimitWarn.classList.add('hidden');
+    resultsSection.classList.remove('hidden');
+    btnResolve.disabled = true;
+    const entries = hpLines.map(l => ({ raw: l.rawMac, mac: normalizeMAC(l.rawMac) }));
+    const { hasRateLimit } = await resolveAll(entries, (resolvedRows) => {
+      renderHPRows(hpLines, resolvedRows);
+    });
+    if (hasRateLimit) rateLimitWarn.classList.remove('hidden');
+    btnResolve.disabled = false;
+
+  } else if (format === 'oscx') {
+    const oscxLines = parseOSCXTable(text)
+      .sort((a, b) => a.port.localeCompare(b.port, undefined, { numeric: true, sensitivity: 'base' }));
+    if (oscxLines.length === 0) {
+      macInput.classList.add('error');
+      setTimeout(() => macInput.classList.remove('error'), 1500);
+      return;
+    }
+    setHeaders('oscx');
+    rateLimitWarn.classList.add('hidden');
+    resultsSection.classList.remove('hidden');
+    btnResolve.disabled = true;
+    const entries = oscxLines.map(l => ({ raw: l.rawMac, mac: normalizeMAC(l.rawMac) }));
+    const { hasRateLimit } = await resolveAll(entries, (resolvedRows) => {
+      renderOSCXRows(oscxLines, resolvedRows);
     });
     if (hasRateLimit) rateLimitWarn.classList.remove('hidden');
     btnResolve.disabled = false;
