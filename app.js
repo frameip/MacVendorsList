@@ -1,4 +1,4 @@
-import { normalizeMAC, splitInput } from './lib/parse.js';
+import { normalizeMAC, splitInput, detectFormat, parseCiscoTable } from './lib/parse.js';
 import { resolveAll } from './lib/resolve.js';
 
 const macInput      = document.getElementById('mac-input');
@@ -10,11 +10,18 @@ const rateLimitWarn = document.getElementById('rate-limit-warning');
 const resultsSection= document.getElementById('results-section');
 const resultsBody   = document.getElementById('results-body');
 const resultsCount  = document.getElementById('results-count');
+const theadRow      = document.querySelector('#results-table thead tr');
 
 const SOURCE_LABELS = { local: 'local', api: 'api', inconnu: 'inconnu', invalid: 'invalide', pending: '...' };
 
 function esc(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function setHeaders(mode) {
+  theadRow.innerHTML = mode === 'cisco'
+    ? '<th>VLAN</th><th>Adresse MAC</th><th>Type</th><th>Port</th><th>Constructeur</th><th>Source</th>'
+    : '<th>Adresse MAC</th><th>Constructeur</th><th>Source</th>';
 }
 
 function renderRows(rows) {
@@ -33,33 +40,76 @@ function renderRows(rows) {
   resultsCount.textContent = `${n} adresse${n > 1 ? 's' : ''}`;
 }
 
+function renderCiscoRows(ciscoLines, resolvedRows) {
+  resultsBody.innerHTML = '';
+  resolvedRows.forEach((row, i) => {
+    const meta = ciscoLines[i];
+    const label = SOURCE_LABELS[row.source] ?? row.source;
+    const tr = document.createElement('tr');
+    tr.dataset.source = row.source;
+    tr.innerHTML =
+      `<td>${esc(meta.vlan)}</td>` +
+      `<td class="mono">${esc(row.display)}</td>` +
+      `<td>${esc(meta.type)}</td>` +
+      `<td>${esc(meta.port)}</td>` +
+      `<td>${esc(row.vendor)}</td>` +
+      `<td><span class="badge badge-${esc(row.source)}">${esc(label)}</span></td>`;
+    resultsBody.appendChild(tr);
+  });
+  const n = resolvedRows.length;
+  resultsCount.textContent = `${n} adresse${n > 1 ? 's' : ''}`;
+}
+
 btnResolve.addEventListener('click', async () => {
-  const tokens = splitInput(macInput.value);
-  if (tokens.length === 0) {
-    macInput.classList.add('error');
-    setTimeout(() => macInput.classList.remove('error'), 1500);
-    return;
+  const text = macInput.value;
+  const format = detectFormat(text);
+
+  if (format === 'cisco') {
+    const ciscoLines = parseCiscoTable(text);
+    if (ciscoLines.length === 0) {
+      macInput.classList.add('error');
+      setTimeout(() => macInput.classList.remove('error'), 1500);
+      return;
+    }
+    setHeaders('cisco');
+    rateLimitWarn.classList.add('hidden');
+    resultsSection.classList.remove('hidden');
+    btnResolve.disabled = true;
+    const entries = ciscoLines.map(l => ({ raw: l.rawMac, mac: normalizeMAC(l.rawMac) }));
+    const { hasRateLimit } = await resolveAll(entries, (resolvedRows) => {
+      renderCiscoRows(ciscoLines, resolvedRows);
+    });
+    if (hasRateLimit) rateLimitWarn.classList.remove('hidden');
+    btnResolve.disabled = false;
+
+  } else {
+    const tokens = splitInput(text);
+    if (tokens.length === 0) {
+      macInput.classList.add('error');
+      setTimeout(() => macInput.classList.remove('error'), 1500);
+      return;
+    }
+    setHeaders('simple');
+    rateLimitWarn.classList.add('hidden');
+    resultsSection.classList.remove('hidden');
+    btnResolve.disabled = true;
+    const entries = tokens.map(t => ({ raw: t, mac: normalizeMAC(t) }));
+    const { hasRateLimit } = await resolveAll(entries, renderRows);
+    if (hasRateLimit) rateLimitWarn.classList.remove('hidden');
+    btnResolve.disabled = false;
   }
-
-  rateLimitWarn.classList.add('hidden');
-  resultsSection.classList.remove('hidden');
-  btnResolve.disabled = true;
-
-  const entries = tokens.map(t => ({ raw: t, mac: normalizeMAC(t) }));
-  const { hasRateLimit } = await resolveAll(entries, renderRows);
-
-  if (hasRateLimit) rateLimitWarn.classList.remove('hidden');
-  btnResolve.disabled = false;
 });
 
 btnClear.addEventListener('click', () => {
   macInput.value = '';
   resultsSection.classList.add('hidden');
   rateLimitWarn.classList.add('hidden');
+  setHeaders('simple');
 });
 
 btnCopy.addEventListener('click', () => {
-  const header = 'Adresse MAC\tConstructeur\tSource';
+  const header = [...document.querySelectorAll('#results-table thead th')]
+    .map(th => th.textContent.trim()).join('\t');
   const rows = [...resultsBody.querySelectorAll('tr')].map(tr =>
     [...tr.querySelectorAll('td')].map(td => td.textContent.trim()).join('\t')
   );
@@ -68,7 +118,8 @@ btnCopy.addEventListener('click', () => {
 
 btnCsv.addEventListener('click', () => {
   const q = s => `"${s.replace(/"/g, '""')}"`;
-  const header = [q('Adresse MAC'), q('Constructeur'), q('Source')].join(',');
+  const header = [...document.querySelectorAll('#results-table thead th')]
+    .map(th => q(th.textContent.trim())).join(',');
   const rows = [...resultsBody.querySelectorAll('tr')].map(tr =>
     [...tr.querySelectorAll('td')].map(td => q(td.textContent.trim())).join(',')
   );
