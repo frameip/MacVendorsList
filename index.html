@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAC Vendors List</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>MAC Vendors List</h1>
+    <p class="subtitle">Collez vos adresses MAC pour identifier les constructeurs.<br>
+      Formats acceptés : <code>AA:BB:CC:DD:EE:FF</code>, <code>AA-BB-CC-DD-EE-FF</code>,
+      <code>AABB.CCDD.EEFF</code>, <code>AABBCCDDEEFF</code></p>
+
+    <section class="input-section">
+      <textarea id="mac-input"
+        placeholder="AA:BB:CC:DD:EE:FF&#10;AA-BB-CC-DD-EE-FF&#10;AABB.CCDD.EEFF&#10;..."
+        rows="8" spellcheck="false" autocomplete="off"></textarea>
+      <div class="input-actions">
+        <button id="btn-resolve">Identifier</button>
+        <button id="btn-clear" class="secondary">Effacer</button>
+      </div>
+    </section>
+
+    <div id="rate-limit-warning" class="warning hidden">
+      Quota API atteint (429). Certaines adresses sont marquées « inconnu ». Réessayez dans quelques minutes.
+    </div>
+
+    <section id="results-section" class="hidden">
+      <div class="results-header">
+        <span id="results-count"></span>
+        <div class="results-actions">
+          <button id="btn-copy" class="secondary">Copier le tableau</button>
+          <button id="btn-csv" class="secondary">Export CSV</button>
+        </div>
+      </div>
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>Adresse MAC</th>
+            <th>Constructeur</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
