@@ -9,13 +9,15 @@
 <body>
   <main>
     <h1>MAC Vendors List</h1>
-    <p class="subtitle">Collez vos adresses MAC pour identifier les constructeurs.<br>
-      Formats acceptés : <code>AA:BB:CC:DD:EE:FF</code>, <code>AA-BB-CC-DD-EE-FF</code>,
-      <code>AABB.CCDD.EEFF</code>, <code>AABBCCDDEEFF</code></p>
+    <p class="subtitle">
+      Collez une liste d'adresses MAC ou la sortie d'un <code>show mac address-table</code> Cisco.<br>
+      Formats MAC acceptés : <code>AA:BB:CC:DD:EE:FF</code>, <code>AA-BB-CC-DD-EE-FF</code>,
+      <code>AABB.CCDD.EEFF</code>, <code>AABBCCDDEEFF</code>
+    </p>
 
     <section class="input-section">
       <textarea id="mac-input"
-        placeholder="AA:BB:CC:DD:EE:FF&#10;AA-BB-CC-DD-EE-FF&#10;AABB.CCDD.EEFF&#10;..."
+        placeholder="Mode liste :&#10;AA:BB:CC:DD:EE:FF&#10;AA-BB-CC-DD-EE-FF&#10;&#10;Mode tableau Cisco :&#10;Vlan  Mac Address        Type     Ports&#10;  93  0009.0f09.0003  DYNAMIC  Gi2/0/45"
         rows="8" spellcheck="false" autocomplete="off"></textarea>
       <div class="input-actions">
         <button id="btn-resolve">Identifier</button>
