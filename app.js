@@ -65,7 +65,9 @@ btnResolve.addEventListener('click', async () => {
   const format = detectFormat(text);
 
   if (format === 'cisco') {
-    const ciscoLines = parseCiscoTable(text);
+    const ciscoLines = parseCiscoTable(text)
+      .filter(l => l.port !== 'CPU')
+      .sort((a, b) => a.port.localeCompare(b.port, undefined, { numeric: true, sensitivity: 'base' }));
     if (ciscoLines.length === 0) {
       macInput.classList.add('error');
       setTimeout(() => macInput.classList.remove('error'), 1500);
