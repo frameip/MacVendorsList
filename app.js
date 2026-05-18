@@ -20,7 +20,7 @@ function esc(s) {
 
 function setHeaders(mode) {
   theadRow.innerHTML = mode === 'cisco'
-    ? '<th>VLAN</th><th>Adresse MAC</th><th>Type</th><th>Port</th><th>Constructeur</th>'
+    ? '<th>VLAN</th><th>Adresse MAC</th><th>Port</th><th>Constructeur</th>'
     : '<th>Adresse MAC</th><th>Constructeur</th>';
 }
 
@@ -49,7 +49,6 @@ function renderCiscoRows(ciscoLines, resolvedRows) {
     tr.innerHTML =
       `<td>${esc(meta.vlan)}</td>` +
       `<td class="mono">${esc(row.display)}</td>` +
-      `<td>${esc(meta.type)}</td>` +
       `<td>${esc(meta.port)}</td>` +
       `<td>${esc(row.vendor)}</td>`;
     resultsBody.appendChild(tr);
