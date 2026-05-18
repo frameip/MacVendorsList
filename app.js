@@ -20,8 +20,8 @@ function esc(s) {
 
 function setHeaders(mode) {
   theadRow.innerHTML = mode === 'cisco'
-    ? '<th>VLAN</th><th>Adresse MAC</th><th>Type</th><th>Port</th><th>Constructeur</th><th>Source</th>'
-    : '<th>Adresse MAC</th><th>Constructeur</th><th>Source</th>';
+    ? '<th>VLAN</th><th>Adresse MAC</th><th>Type</th><th>Port</th><th>Constructeur</th>'
+    : '<th>Adresse MAC</th><th>Constructeur</th>';
 }
 
 function renderRows(rows) {
@@ -32,8 +32,7 @@ function renderRows(rows) {
     tr.dataset.source = row.source;
     tr.innerHTML =
       `<td class="mono">${esc(row.display)}</td>` +
-      `<td>${esc(row.vendor)}</td>` +
-      `<td><span class="badge badge-${esc(row.source)}">${esc(label)}</span></td>`;
+      `<td>${esc(row.vendor)}</td>`;
     resultsBody.appendChild(tr);
   }
   const n = rows.length;
@@ -52,8 +51,7 @@ function renderCiscoRows(ciscoLines, resolvedRows) {
       `<td class="mono">${esc(row.display)}</td>` +
       `<td>${esc(meta.type)}</td>` +
       `<td>${esc(meta.port)}</td>` +
-      `<td>${esc(row.vendor)}</td>` +
-      `<td><span class="badge badge-${esc(row.source)}">${esc(label)}</span></td>`;
+      `<td>${esc(row.vendor)}</td>`;
     resultsBody.appendChild(tr);
   });
   const n = resolvedRows.length;
