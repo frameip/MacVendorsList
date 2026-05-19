@@ -154,6 +154,13 @@ test('detectFormat: retourne oscx sur en-tête OS-CX', () => {
   assert.equal(detectFormat(OSCX_SAMPLE), 'oscx');
 });
 
+test('detectFormat: retourne oscx sur en-tête Aruba sans MAC age-time', () => {
+  const sample = `MAC Address          VLAN     Type                      Port
+--------------------------------------------------------------
+e4:de:40:d9:2e:c0    100      dynamic                   1/1/49`;
+  assert.equal(detectFormat(sample), 'oscx');
+});
+
 // ── parseHPTable ──────────────────────────────────────────────────────────────
 
 test('parseHPTable: parse une ligne correctement', () => {
