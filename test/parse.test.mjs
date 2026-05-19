@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeMAC, extractOUI, splitInput, detectFormat, parseCiscoTable, parseHPTable, parseOSCXTable } from '../lib/parse.js';
+import { normalizeMAC, extractOUI, splitInput, detectFormat, parseCiscoTable, parseHPTable, parseOSCXTable, parseHuaweiTable } from '../lib/parse.js';
 
 // normalizeMAC
 
@@ -201,4 +201,44 @@ test('parseOSCXTable: ignore les lignes d\'en-tête et séparateurs', () => {
 
 test('parseOSCXTable: retourne tableau vide sur entrée vide', () => {
   assert.deepEqual(parseOSCXTable(''), []);
+});
+
+// ── normalizeMAC Huawei ───────────────────────────────────────────────────────
+
+test('normalizeMAC: format Huawei (xxxx-xxxx-xxxx)', () => {
+  assert.equal(normalizeMAC('0009-0f09-0002'), '00:09:0F:09:00:02');
+});
+
+// ── detectFormat Huawei ──────────────────────────────────────────────────────
+
+const HUAWEI_SAMPLE = `-------------------------------------------------------------------------------
+MAC Address    VLAN/VSI/BD                       Learned-From        Type
+-------------------------------------------------------------------------------
+0009-0f09-0002 1/-/-                             Eth-Trunk3          dynamic
+000a-5902-2dfd 1/-/-                             GE1/0/35            dynamic`;
+
+test('detectFormat: retourne huawei sur en-tête Huawei', () => {
+  assert.equal(detectFormat(HUAWEI_SAMPLE), 'huawei');
+});
+
+// ── parseHuaweiTable ─────────────────────────────────────────────────────────
+
+test('parseHuaweiTable: parse une ligne correctement', () => {
+  const result = parseHuaweiTable(HUAWEI_SAMPLE);
+  assert.deepEqual(result[0], { vlan: '1', rawMac: '0009-0f09-0002', port: 'Eth-Trunk3', type: 'dynamic' });
+});
+
+test('parseHuaweiTable: extrait le VLAN depuis VLAN/VSI/BD', () => {
+  const result = parseHuaweiTable(HUAWEI_SAMPLE);
+  assert.equal(result[1].vlan, '1');
+  assert.equal(result[1].port, 'GE1/0/35');
+});
+
+test('parseHuaweiTable: ignore les séparateurs et l\'en-tête', () => {
+  const result = parseHuaweiTable(HUAWEI_SAMPLE);
+  assert.equal(result.length, 2);
+});
+
+test('parseHuaweiTable: retourne tableau vide sur entrée vide', () => {
+  assert.deepEqual(parseHuaweiTable(''), []);
 });

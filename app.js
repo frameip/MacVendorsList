@@ -1,4 +1,4 @@
-import { normalizeMAC, splitInput, detectFormat, parseCiscoTable, parseHPTable, parseOSCXTable } from './lib/parse.js';
+import { normalizeMAC, splitInput, detectFormat, parseCiscoTable, parseHPTable, parseOSCXTable, parseHuaweiTable } from './lib/parse.js';
 import { resolveAll } from './lib/resolve.js';
 
 const macInput      = document.getElementById('mac-input');
@@ -19,7 +19,7 @@ function esc(s) {
 }
 
 function setHeaders(mode) {
-  if (mode === 'cisco' || mode === 'oscx') {
+  if (mode === 'cisco' || mode === 'oscx' || mode === 'huawei') {
     theadRow.innerHTML = '<th>VLAN</th><th>Adresse MAC</th><th>Port</th><th>Constructeur</th>';
   } else if (mode === 'hp') {
     theadRow.innerHTML = '<th>Adresse MAC</th><th>Port</th><th>Constructeur</th>';
@@ -67,6 +67,23 @@ function renderHPRows(hpLines, resolvedRows) {
     const tr = document.createElement('tr');
     tr.dataset.source = row.source;
     tr.innerHTML =
+      `<td class="mono">${esc(row.display)}</td>` +
+      `<td>${esc(meta.port)}</td>` +
+      `<td>${esc(row.vendor)}</td>`;
+    resultsBody.appendChild(tr);
+  });
+  const n = resolvedRows.length;
+  resultsCount.textContent = `${n} adresse${n > 1 ? 's' : ''}`;
+}
+
+function renderHuaweiRows(huaweiLines, resolvedRows) {
+  resultsBody.innerHTML = '';
+  resolvedRows.forEach((row, i) => {
+    const meta = huaweiLines[i];
+    const tr = document.createElement('tr');
+    tr.dataset.source = row.source;
+    tr.innerHTML =
+      `<td>${esc(meta.vlan)}</td>` +
       `<td class="mono">${esc(row.display)}</td>` +
       `<td>${esc(meta.port)}</td>` +
       `<td>${esc(row.vendor)}</td>`;
@@ -134,6 +151,25 @@ btnResolve.addEventListener('click', async () => {
       renderHPRows(hpLines, resolvedRows);
     });
     if (hasRateLimit) rateLimitWarn.classList.remove('hidden');
+    btnResolve.disabled = false;
+
+  } else if (format === 'huawei') {
+    const huaweiLines = parseHuaweiTable(text)
+      .sort((a, b) => a.port.localeCompare(b.port, undefined, { numeric: true, sensitivity: 'base' }));
+    if (huaweiLines.length === 0) {
+      macInput.classList.add('error');
+      setTimeout(() => macInput.classList.remove('error'), 1500);
+      return;
+    }
+    setHeaders('huawei');
+    rateLimitWarn.classList.add('hidden');
+    resultsSection.classList.remove('hidden');
+    btnResolve.disabled = true;
+    const entriesHW = huaweiLines.map(l => ({ raw: l.rawMac, mac: normalizeMAC(l.rawMac) }));
+    const { hasRateLimit: hwRL } = await resolveAll(entriesHW, (resolvedRows) => {
+      renderHuaweiRows(huaweiLines, resolvedRows);
+    });
+    if (hwRL) rateLimitWarn.classList.remove('hidden');
     btnResolve.disabled = false;
 
   } else if (format === 'oscx') {
