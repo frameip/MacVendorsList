@@ -133,10 +133,10 @@ test('normalizeMAC: format HP ProCurve (aabbcc-ddeeff)', () => {
 
 const HP_SAMPLE = `Status and Counters - Port Address Table
 
-  MAC Address          Located on Port
-  ------------- ---------------
-  aabbcc-ddeeff 1
-  001122-334455 A2`;
+  MAC Address       Port    VLAN
+  ----------------- ------- ----
+  aabbcc-ddeeff     Trk4    12
+  001122-334455     2/4     1`;
 
 const OSCX_SAMPLE = `MAC age-time : 300 seconds
 Number of MAC addresses : 2
@@ -165,12 +165,12 @@ e4:de:40:d9:2e:c0    100      dynamic                   1/1/49`;
 
 test('parseHPTable: parse une ligne correctement', () => {
   const result = parseHPTable(HP_SAMPLE);
-  assert.deepEqual(result[0], { rawMac: 'aabbcc-ddeeff', port: '1' });
+  assert.deepEqual(result[0], { rawMac: 'aabbcc-ddeeff', port: 'Trk4', vlan: '12' });
 });
 
-test('parseHPTable: parse le port alphanumérique', () => {
+test('parseHPTable: parse le port et le VLAN', () => {
   const result = parseHPTable(HP_SAMPLE);
-  assert.deepEqual(result[1], { rawMac: '001122-334455', port: 'A2' });
+  assert.deepEqual(result[1], { rawMac: '001122-334455', port: '2/4', vlan: '1' });
 });
 
 test('parseHPTable: ignore l\'en-tête et les séparateurs', () => {

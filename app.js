@@ -19,10 +19,8 @@ function esc(s) {
 }
 
 function setHeaders(mode) {
-  if (mode === 'cisco' || mode === 'oscx' || mode === 'huawei') {
+  if (['cisco', 'oscx', 'huawei', 'hp'].includes(mode)) {
     theadRow.innerHTML = '<th>VLAN</th><th>Adresse MAC</th><th>Port</th><th>Constructeur</th>';
-  } else if (mode === 'hp') {
-    theadRow.innerHTML = '<th>Adresse MAC</th><th>Port</th><th>Constructeur</th>';
   } else {
     theadRow.innerHTML = '<th>Adresse MAC</th><th>Constructeur</th>';
   }
@@ -67,6 +65,7 @@ function renderHPRows(hpLines, resolvedRows) {
     const tr = document.createElement('tr');
     tr.dataset.source = row.source;
     tr.innerHTML =
+      `<td>${esc(meta.vlan)}</td>` +
       `<td class="mono">${esc(row.display)}</td>` +
       `<td>${esc(meta.port)}</td>` +
       `<td>${esc(row.vendor)}</td>`;
